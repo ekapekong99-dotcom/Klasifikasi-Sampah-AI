@@ -1,0 +1,29 @@
+body {
+    font-family: Arial;
+    background: #f1f5f9;
+}
+
+
+.container {
+    width: 500px;
+    margin: 50px auto;
+    background: white;
+    padding: 30px;
+    text-align: center;
+    border-radius: 15px;
+}
+
+
+button {
+    padding: 10px 25px;
+    background: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
+
+
+img {
+    margin-top: 20px;
+    border-radius: 10px;
+}
