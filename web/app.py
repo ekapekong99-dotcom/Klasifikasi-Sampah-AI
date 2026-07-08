@@ -4,13 +4,11 @@ from flask import Flask, render_template, request
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 
-
 app = Flask(__name__)
 
-
-# ===============================
+# =====================================================
 # PATH
-# ===============================
+# =====================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,7 +16,7 @@ MODEL_PATH = os.path.join(
     BASE_DIR,
     "..",
     "model",
-    "resnet50_best.keras"
+    "mobilenetv2_best.keras"
 )
 
 UPLOAD_FOLDER = os.path.join(
@@ -27,21 +25,17 @@ UPLOAD_FOLDER = os.path.join(
     "uploads"
 )
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-
-# buat folder upload kalau belum ada
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# ===============================
+# =====================================================
 # LOAD MODEL
-# ===============================
+# =====================================================
 
 model = load_model(MODEL_PATH)
 
-
-class_names = [
+CLASS_NAMES = [
     "cardboard",
     "glass",
     "metal",
@@ -50,37 +44,37 @@ class_names = [
     "trash"
 ]
 
-
 IMG_SIZE = (224, 224)
 
-
-# ===============================
+# =====================================================
 # HOME
-# ===============================
+# =====================================================
 
 @app.route("/")
 def home():
-    return render_template(
-        "index.html"
-    )
+    return render_template("index.html")
 
-
-# ===============================
+# =====================================================
 # PREDICT
-# ===============================
+# =====================================================
 
 @app.route("/predict", methods=["POST"])
 def predict():
 
     if "file" not in request.files:
-        return "Tidak ada file"
+        return render_template(
+            "index.html",
+            error="Silakan pilih gambar."
+        )
 
     file = request.files["file"]
 
     if file.filename == "":
-        return "File kosong"
+        return render_template(
+            "index.html",
+            error="Silakan pilih gambar."
+        )
 
-    # simpan gambar
     filename = file.filename
 
     filepath = os.path.join(
@@ -90,44 +84,43 @@ def predict():
 
     file.save(filepath)
 
-    # preprocessing gambar
     img = image.load_img(
         filepath,
         target_size=IMG_SIZE
     )
 
-    img_array = image.img_to_array(img)
+    img = image.img_to_array(img)
 
-    img_array = np.expand_dims(
-        img_array,
+    img = img / 255.0
+
+    img = np.expand_dims(
+        img,
         axis=0
     )
 
-    img_array = img_array / 255.0
-
-    # prediksi
     prediction = model.predict(
-        img_array
+        img,
+        verbose=0
     )
 
-    class_id = np.argmax(
-        prediction
-    )
+    class_id = np.argmax(prediction)
 
-    label = class_names[class_id]
+    confidence = float(
+        np.max(prediction)
+    ) * 100
 
-    confidence = round(
-        float(np.max(prediction))*100,
-        2
-    )
+    label = CLASS_NAMES[class_id]
 
     return render_template(
         "index.html",
         prediction=label,
-        confidence=confidence,
+        confidence=round(confidence, 2),
         image_path="uploads/" + filename
     )
 
+# =====================================================
+# RUN
+# =====================================================
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
